@@ -73,7 +73,7 @@ the following commands are available:
   (eg: cron job).
 - `plan --status, -s` - Lists all tasks either due today, this week or this
   month. The interval can be set using the `--weekly, -W` and `--monthly, -M`
-  options, the default being today. It can also take `--descriptio, -m` as an
+  options, the default being today. It can also take `--description, -m` as an
   option, which makes the tasks' descriptions visible.
 
 ## Example usage
