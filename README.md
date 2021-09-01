@@ -20,8 +20,8 @@ taking notes on something.
 
 So where do tasks fit in here? Tasks are used to represent goals you want to
 achieve on some topic. They are stored in a list with checkboxes for each task.
-Tasks must have a title and can have a title, a due/completion date, a
-description or even sub-tasks. Here is an example `## Tasks` section:
+Tasks must have a title and can have a due/completion date, a description or
+even sub-tasks. Here is an example `## Tasks` section:
 
 ```md
 ## Tasks
