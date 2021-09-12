@@ -107,7 +107,10 @@ fn main() {
     let root = manager.load().expect("Couldn't load root topic");
 
     root.tasks_rec().iter()
-        .for_each(|(n, t)| println!("{} ({:?})", n, t.due()));
+        .for_each(|(n, t)| match t.due() {
+            data::Due::Never => println!("{}", n),
+            _ => println!("{} ({})", n, t.due()),
+        });
 
     if matches.is_present("add") {
         /*if let Some(name) = matches.value_of("task") {

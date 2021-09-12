@@ -1,5 +1,6 @@
 use std::fs;
 use std::io;
+use std::fmt;
 use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 use chrono::{prelude::*, offset::TimeZone, DateTime, NaiveDateTime, Local};
@@ -51,6 +52,13 @@ fn parse_datetime(when: &str) -> Option<DateTime<Local>> {
     }
 }
 
+fn datetime_to_str(dt: &DateTime<Local>) -> String {
+    format!("{} {:02}/{:02}/{:02} {:02}:{:02}",
+        dt.weekday(),
+        dt.day(), dt.month(), dt.year() % 100,
+        dt.hour(), dt.minute())
+}
+
 impl Due {
     fn parse(when: &str) -> Option<Due> {
         let parts: Vec<_> = when.split("-").collect();
@@ -58,6 +66,16 @@ impl Due {
             1 => Some(Due::Day(parse_datetime(parts[0])?)),
             2 => Some(Due::Interval(parse_datetime(parts[0])?, parse_datetime(parts[1])?)),
             _ => None,
+        }
+    }
+}
+
+impl fmt::Display for Due {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Due::Never => Ok(()),
+            Due::Day(dt) => write!(f, "{}", datetime_to_str(dt)),
+            Due::Interval(a, b) => write!(f, "{}-{}", datetime_to_str(a), datetime_to_str(b)),
         }
     }
 }
@@ -91,6 +109,7 @@ impl Manager {
     // Loads the root topic
     pub fn load<'a>(&'a self) -> Result<Topic<'a>, io::Error> {
         Topic::load(&self, &self.root_dir).transpose().unwrap()
+            .map(|mut t| { t.name = "root".to_owned(); t })
     } 
 }
 
@@ -101,6 +120,7 @@ impl<'a> Topic<'a> {
         
         let content = fs::read_to_string(path)?;
         let name = path.file_stem().unwrap().to_str().unwrap();
+        let name = if name == "about" { path.parent().unwrap().file_name().unwrap().to_str().unwrap() } else { name };
         let mut tasks: Vec<Task> = Vec::new();
         let mut within_code_block = false;
         let mut within_task = false;
@@ -251,7 +271,7 @@ impl<'a> Topic<'a> {
 
             // Check if there is an 'about.md' file inside the folder
             let file_path = path.join("about").with_extension("md");
-            let topic = Topic::load(manager, &file_path)?;
+            let topic = Topic::parse(manager, &file_path).ok();
             if let Some(mut topic) = topic {
                 topic.subtopics = subtopics;
                 Ok(Some(topic))
