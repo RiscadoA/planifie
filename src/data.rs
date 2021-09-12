@@ -2,7 +2,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
-use chrono::{offset::TimeZone, DateTime, NaiveDateTime, Local};
+use chrono::{prelude::*, offset::TimeZone, DateTime, NaiveDateTime, Local};
 use regex::Regex;
 
 // Stores settings
@@ -291,15 +291,50 @@ impl<'a> Topic<'a> {
         &self.tasks
     }
 
-    // Gets all taks in the topic and subtopics
+    // Gets all tasks (subtasks too) in the topic and subtopics
     pub fn tasks_rec(&self) -> Vec<(String, &Task)> {
-        self.subtopics.iter()
+        let top_tasks = self.subtopics.iter()
             .map(|t| t.tasks_rec())
             .fold(self.tasks.iter()
                 .map(|t| (t.name.clone(), t))
                 .collect(),
-                |a, b| [a, b].concat())
-            .into_iter()
+                |a, b| [a, b].concat());
+        let sub_tasks: Vec<_> = self.tasks.iter()
+            .map(|t| t.subtasks_rec())
+            .flatten()
+            .collect();
+        top_tasks.into_iter().chain(sub_tasks.into_iter())
+            .map(|(n, t)| ([self.name.clone(), n].join("/"), t))
+            .collect()
+    }
+}
+
+impl Task {
+    pub fn done(&self) -> bool {
+        self.done
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn due(&self) -> &Due {
+        &self.due
+    }
+
+    pub fn desc(&self) -> Option<&str> {
+        if let Some(d) = &self.description {
+            Some(d)
+        }
+        else {
+            None
+        }
+    }
+    
+    pub fn subtasks_rec(&self) -> Vec<(String, &Task)> {
+        self.subtasks.iter()
+            .map(|t| [vec![(t.name.clone(), t)], t.subtasks_rec()].concat())
+            .flatten()
             .map(|(n, t)| ([self.name.clone(), n].join("/"), t))
             .collect()
     }
