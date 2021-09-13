@@ -314,7 +314,9 @@ impl<'a> Topic<'a> {
     // Gets all tasks (subtasks too) in the topic and subtopics
     pub fn tasks_rec(&self) -> Vec<(String, &Task)> {
         let top_tasks = self.subtopics.iter()
-            .map(|t| t.tasks_rec())
+            .map(|t| t.tasks_rec().into_iter()
+                .map(|(n, u)| ([t.name.clone(), n].join("/"), u))
+                .collect::<Vec<_>>())
             .fold(self.tasks.iter()
                 .map(|t| (t.name.clone(), t))
                 .collect(),
@@ -323,9 +325,7 @@ impl<'a> Topic<'a> {
             .map(|t| t.subtasks_rec())
             .flatten()
             .collect();
-        top_tasks.into_iter().chain(sub_tasks.into_iter())
-            .map(|(n, t)| ([self.name.clone(), n].join("/"), t))
-            .collect()
+        return [top_tasks, sub_tasks].concat();
     }
 }
 

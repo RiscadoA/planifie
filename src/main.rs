@@ -106,7 +106,9 @@ fn main() {
     let manager = data::Manager::new(config_path.as_path()).expect("Couldn't create manager");
     let root = manager.load().expect("Couldn't load root topic");
 
-    root.tasks_rec().iter()
+    let mut tasks = root.tasks_rec();
+    tasks.sort();
+    tasks.iter()
         .for_each(|(n, t)| match t.due() {
             data::Due::Never => println!("{}", n),
             _ => println!("{} ({})", n, t.due()),
