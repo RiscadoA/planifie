@@ -13,21 +13,22 @@ projects/
 finances.md
 ```
 
-A topic is a regular markdown file with one quirk: tasks associated to this
-topic are defined beneath the `## Tasks` subtitle, if there is one. Other than
-that the file can be treated as a regular markdown file you would use for
-taking notes on something.
-
-So where do tasks fit in here? Tasks are used to represent goals you want to
-achieve on some topic. They are stored in a list with checkboxes for each task.
-Tasks must have a title and can have a due/completion date, a description or
-even sub-tasks. Here is an example `## Tasks` section:
+Topics are simple markdown files. Where do tasks fit in here? Tasks are used to
+represent goals you want to achieve on some topic. Every list item with a
+checkbox (e.g.: `- [ ] Example task`) is considered a task. Tasks must have a
+name and can have a due/completion date, a description or even sub-tasks. Here
+is an example topic file:
 
 ```md
-## Tasks
+## General tasks
+
+Home stuff:
 
 - [X] Vacuum the dining room (01/09/21) 
-- [ ] Wash the dishes (01/09/21) 
+- [ ] Wash the dishes (01/09/21)
+
+Other stuff:
+
 - [ ] Due dates are optional
 - [ ] Big project coming up (05/09/21)
   Here is a very interesting
@@ -48,12 +49,19 @@ possible, you can collapse an entire topic to a single task.
 ## Usage
 
 So, how can you use Planifie? This system can be manipulated through its CLI,
-the following options and commands are available:
+the following commands are available:
 
-- `plan [-u, --update]` - Makes all tasks that were due before today and were
-  not completed due today. This command can be set to run automatically
-  everyday (eg: cron job).
-- `plan -D, --directory PATH` - Overrides the default planifie directory path.
+- `plan update` - Performs automation on special parameters (eg.: `@ repeat`).
+  This command can/should be set to run automatically everyday.
+- `plan show [WHEN]` - Shows the tasks that are due on a certain time frame.
+  This time frame can be specified through the `WHEN` argument. This argument
+  can take the following forms: `dd/mm/yy`, `dd/mm/yy-dd/mm/yy`, `daily`,
+  `weekly`, `monthly`, `all`. This command also supports `-m` flag, which shows
+  the task's descriptions too, the `-d` flag which hides every task that is
+  already done and the `-t` flag which shows only the top tasks (subtasks are
+  hidden).
+- `plan -c, --config PATH` - Overrides the default planifie configuration file
+  path.
 - `plan -h, --help` - Shows an help message.
 - `plan -t, --task TASK_NAME` - Specifies that we will be operating on task.
 - `plan -T, --topic TOPIC_NAME` - Specifies that we will be operating on a

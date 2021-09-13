@@ -1,6 +1,7 @@
 use std::fs;
 use std::io;
 use std::fmt;
+use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 use chrono::{prelude::*, offset::TimeZone, DateTime, NaiveDateTime, Local};
@@ -40,23 +41,69 @@ pub enum Due {
     Interval(DateTime<Local>, DateTime<Local>),
 }
 
+impl PartialEq for Due {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Due::Never, Due::Never) => true,
+            (Due::Day(a), Due::Day(b)) => a == b,
+            (Due::Interval(a, c), Due::Interval(b, d)) => a == b && c == d,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for Due {
+    
+}
+
+impl PartialOrd for Due {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Due {
+    fn cmp(&self, other: &Self) -> Ordering {
+        use Ordering::*;
+        use Due::*;
+
+        match (self, other) {
+            (Never, Never) => Equal,
+            (Never, _) => Greater,
+            (_, Never) => Less,
+            (Due::Day(a), Due::Day(b)) => a.cmp(b),
+            (Due::Day(a), Due::Interval(b, _)) => a.cmp(b),
+            (Due::Interval(a, _), Due::Day(b)) => a.cmp(b),
+            (Due::Interval(a, c), Due::Interval(b, d)) => a.cmp(b).then(c.cmp(d)),
+        }
+    }
+}
+
 fn parse_datetime(when: &str) -> Option<DateTime<Local>> {
     if let Some(dt) = NaiveDateTime::parse_from_str(when, "%d/%m/%y %H:%M").ok() {
         Some(Local.from_local_datetime(&dt).unwrap())
     }
-    else if let Some(dt) = NaiveDateTime::parse_from_str(when, "%d/%m/%y").ok() {
-        Some(Local.from_local_datetime(&dt).unwrap())
+    else if let Some(d) = NaiveDate::parse_from_str(when, "%d/%m/%y").ok() {
+        Some(Local.from_local_datetime(&d.and_hms(0, 0, 0)).unwrap())
     }
     else {
+        println!("'{}'", when);
         None
     }
 }
 
 fn datetime_to_str(dt: &DateTime<Local>) -> String {
-    format!("{} {:02}/{:02}/{:02} {:02}:{:02}",
-        dt.weekday(),
-        dt.day(), dt.month(), dt.year() % 100,
-        dt.hour(), dt.minute())
+    if dt.hour() != 0 || dt.minute() != 0 {
+        format!("{} {:02}/{:02}/{:02} {:02}:{:02}",
+            dt.weekday(),
+            dt.day(), dt.month(), dt.year() % 100,
+            dt.hour(), dt.minute())
+    }
+    else {
+        format!("{} {:02}/{:02}/{:02}",
+            dt.weekday(),
+            dt.day(), dt.month(), dt.year() % 100)
+    }
 }
 
 impl Due {
@@ -68,6 +115,14 @@ impl Due {
             _ => None,
         }
     }
+
+    pub fn active_on(&self, begin: &DateTime<Local>, end: &DateTime<Local>) -> bool {
+        match self {
+            Due::Never => false,
+            Due::Day(dt) => begin <= dt && dt <= end,
+            Due::Interval(a, b) => begin <= b && a <= end,
+        }
+    }   
 }
 
 impl fmt::Display for Due {
@@ -358,4 +413,9 @@ impl Task {
             .map(|(n, t)| ([self.name.clone(), n].join("/"), t))
             .collect()
     }
+
+    pub fn due_compare(lhs: &Self, rhs: &Self) -> Ordering {
+        Ordering::Equal
+    }
 }
+

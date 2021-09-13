@@ -1,15 +1,31 @@
 use std::path::PathBuf;
 use std::io;
-use clap::{App, Arg};
+use clap::{App, Arg, SubCommand};
+use chrono::{prelude::*, Local, DateTime};
 
 mod data;
+
+fn end_of_week() -> DateTime<Local> {
+    let year = Local::now().year();
+    let week = Local::now().iso_week().week();
+    Local.isoywd(year, week, Weekday::Sat).and_hms(23, 59, 59)
+}
 
 fn main() {
     let matches = App::new("planifie")
         .version("0.1")
         .author("Ricardo Antunes <me@riscadoa.com>")
         .about("Minimalist self-organization CLI app")
-        .arg(Arg::new("update")
+        .subcommand(SubCommand::with_name("show")
+            .about("Shows all the tasks on a certain time frame")
+            .arg(Arg::with_name("when")
+                .number_of_values(1)
+                .default_value("daily")
+                .value_name("WHEN"))
+            .arg(Arg::with_name("hide-completed")
+                .short("d")
+                .long("hide-completed")))
+        /*.arg(Arg::new("update")
             .short('u')
             .long("update")
             .about("Makes all tasks that were due before today and were not completed due today. \
@@ -27,7 +43,7 @@ fn main() {
             .about("Selects a task for operating on.")
             .group("selector")
             .takes_value(true)
-            .value_name("TASK_NAME"))
+            .value_name("TASK_NAME"))*/
         /*.arg(Arg::new("topic")
             .short('T')
             .long("topic")
@@ -47,7 +63,7 @@ fn main() {
             .about("Removes a new task/topic.")
             .requires("selector")
             .conflicts_with("add"))*/
-        .arg(Arg::new("description")
+        /*.arg(Arg::new("description")
             .short('m')
             .long("description")
             .value_name("DESC")
@@ -55,7 +71,7 @@ fn main() {
             .takes_value(true)
             .min_values(0)
             .max_values(1)
-            .requires("selector"))
+            .requires("selector"))*/
         /*.arg(Arg::new("due")
             .short('d')
             .long("due")
@@ -101,18 +117,35 @@ fn main() {
                      the --config option")
             .join("planifie.conf")
     };
-
+    
     // Init manager
     let manager = data::Manager::new(config_path.as_path()).expect("Couldn't create manager");
     let root = manager.load().expect("Couldn't load root topic");
 
     let mut tasks = root.tasks_rec();
-    tasks.sort();
+    tasks.sort_by_key(|t| t.1.due());
     tasks.iter()
+        .filter(|(_, t)| t.due().active_on(
+            &Local.timestamp(0, 0),
+            &end_of_week()
+        ))
         .for_each(|(n, t)| match t.due() {
             data::Due::Never => println!("{}", n),
             _ => println!("{} ({})", n, t.due()),
         });
+
+    match matches.subcommand() {
+        ("show", Some(m)) => {
+            let when = m.value_of("when").unwrap();
+            let interval = match when {
+                "daily" => {
+
+                },
+                _ => {}
+            };
+        },
+        _ => {}
+    }
 
     if matches.is_present("add") {
         /*if let Some(name) = matches.value_of("task") {
